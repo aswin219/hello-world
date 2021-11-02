@@ -1,14 +1,30 @@
 version: 2.1
-orbs:
-  node: circleci/node@1.1
 jobs:
-  build:
-    executor:
-      name: node/default
-      tag: '10.4'
+  one: #1st job
+    docker: #uses docker executor
+      - image: circleci/python:3.6.4
+        auth:
+          username: aswinmkolathur
+          password: appu@2000
     steps:
-      - checkout
-      - node/with-cache:
-          steps:
-            - run: npm install
-      - run: npm run test
+      - checkout  #pull code from github
+      - run: echo "hello world"
+      - run: sleep 25  #25seconds
+  
+  two:  #2nd job
+    docker: #runs inside docker image as above
+      - image: circleci/python:3.6.4
+        auth:
+          username: aswinmkolathur
+          password: appu@2000
+    steps:
+      - checkout  #pull code from github
+      - run: echo "hi from hello world"
+      - run: sleep 15
+
+workflows:
+  version: 2.1
+  one_and_two: #name of work flow
+    jobs:     #jobs listed
+      - one
+      - two
