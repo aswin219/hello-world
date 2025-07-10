@@ -47,10 +47,10 @@ jobs:
         rsync -avz --delete --exclude-from='.rsync-exclude' ./ \
           ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:${{ secrets.EC2_TARGET_PATH }}
 
-    - name: Remove SSH access rule
-      if: always()
-      run: |
-        ./sg/revoke-ssh.sh
-      env:
-        SECURITY_GROUP_ID: ${{ secrets.EC2_SECURITY_GROUP_ID }}
-        RUNNER_IP: ${{ steps.allow_ssh.outputs.runner_ip }}
+    # - name: Remove SSH access rule
+    #   if: always()
+    #   run: |
+    #     ./sg/revoke-ssh.sh
+    #   env:
+    #     SECURITY_GROUP_ID: ${{ secrets.EC2_SECURITY_GROUP_ID }}
+    #     RUNNER_IP: ${{ steps.allow_ssh.outputs.runner_ip }}
