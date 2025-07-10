@@ -8,18 +8,49 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
 
+    env:
+      SECURITY_GROUP_ID: ${{ secrets.EC2_SECURITY_GROUP_ID }}
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
 
-      - name: Set up SSH key
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+    - name: Install AWS CLI
+      run: |
+        sudo apt update
+        sudo apt install -y awscli
 
-      - name: Rsync files to EC2
-        run: |
-          rsync -avz --delete --exclude-from='.rsync-exclude' ./ \
-            ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:${{ secrets.EC2_TARGET_PATH }}
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_REGION }}
+
+    - name: Allow SSH from runner IP
+      id: allow_ssh
+      run: |
+        ./scripts/allow-ssh.sh
+      env:
+        SECURITY_GROUP_ID: ${{ secrets.EC2_SECURITY_GROUP_ID }}
+
+    - name: Set up SSH key
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_ed25519
+        chmod 600 ~/.ssh/id_ed25519
+        ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+
+    - name: Rsync files to EC2
+      run: |
+        rsync -avz --delete --exclude-from='.rsync-exclude' ./ \
+          ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:${{ secrets.EC2_TARGET_PATH }}
+
+    - name: Remove SSH access rule
+      if: always()
+      run: |
+        ./scripts/revoke-ssh.sh
+      env:
+        SECURITY_GROUP_ID: ${{ secrets.EC2_SECURITY_GROUP_ID }}
+        RUNNER_IP: ${{ steps.allow_ssh.outputs.runner_ip }}
