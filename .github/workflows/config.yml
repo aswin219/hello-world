@@ -1,0 +1,87 @@
+name: Deploy to EKS
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  ECR_REPOSITORY_BE: ashwin-dmt/be_app
+  ECR_REPOSITORY_FE: ashwin-dmt/ui_app
+  IMAGE_TAG: dmt
+  EKS_CLUSTER_NAME: ashwin-dmt-EKS
+  AWS_REGION: us-east-1
+  NAMESPACE: ashwin-dmt-ns
+  SERVICE_FE: ui-app
+  SERVICE_BE: be-app
+
+jobs:
+  build-image:
+    runs-on: ubuntu-latest
+    outputs:
+      ecr_registry: ${{ steps.login-ecr.outputs.registry }}    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Configure AWS
+      uses: aws-actions/configure-aws-credentials@v4.1.0
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_ID }}
+        aws-region: us-east-1
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v2
+
+    - name: Inject backend environment variables
+      run: |
+        cat <<EOF > be_app/.env
+        DB_HOST=${{ secrets.DB_HOST }}
+        DB_USER_NAME=${{ secrets.DB_USER_NAME }}
+        DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+        DB_NAME=${{ secrets.DB_NAME }}
+        DB_PORT=${{ secrets.DB_PORT }}
+        PORT=${{ secrets.PORT }}
+        EOF      
+
+    - name: Build, tag, and push image to Amazon ECR - BE
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}        
+      run: |
+        cd be_app/
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY_BE:$IMAGE_TAG .
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY_BE:$IMAGE_TAG
+
+    - name: Build, tag, and push image to Amazon ECR - FE
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}        
+      run: |
+        cd ui_app/
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY_FE:$IMAGE_TAG .
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY_FE:$IMAGE_TAG
+
+  deploy-to-eks:        
+    needs: build-image
+    runs-on: ubuntu-latest    
+    steps:
+    - name: Configure AWS
+      uses: aws-actions/configure-aws-credentials@v4.1.0
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_ID }}
+        aws-region: us-east-1
+
+    - name: Update kube config
+      run: aws eks update-kubeconfig --name $EKS_CLUSTER_NAME --region $AWS_REGION
+
+    - name: Deploy to EKS
+      run: |      
+        ECR_REGISTRY=${{ needs.build-image.outputs.ecr_registry }}
+
+        kubectl set image deployment ${SERVICE_BE} "${SERVICE_BE}-container"=$ECR_REGISTRY/$ECR_REPOSITORY_BE:$IMAGE_TAG --namespace=${NAMESPACE}        
+        kubectl set image deployment ${SERVICE_FE} "${SERVICE_FE}-container"=$ECR_REGISTRY/$ECR_REPOSITORY_FE:$IMAGE_TAG --namespace=${NAMESPACE}
+
+        kubectl --namespace=${NAMESPACE} rollout restart deployment ${SERVICE_BE}
+        kubectl --namespace=${NAMESPACE} rollout restart deployment ${SERVICE_FE}        
