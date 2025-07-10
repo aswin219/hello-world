@@ -8,6 +8,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
 
+    #global env
     env:
       SECURITY_GROUP_ID: ${{ secrets.EC2_SECURITY_GROUP_ID }}
       AWS_REGION: ${{ secrets.AWS_REGION }}
@@ -32,8 +33,8 @@ jobs:
       id: allow_ssh
       run: |
         ./sg/allow-ssh.sh
-      env:
-        SECURITY_GROUP_ID: ${{ secrets.EC2_SECURITY_GROUP_ID }}
+      # env:
+      #   SECURITY_GROUP_ID: ${{ secrets.EC2_SECURITY_GROUP_ID }}
 
     - name: Set up SSH key
       run: |
@@ -47,10 +48,10 @@ jobs:
         rsync -avz --delete --exclude-from='.rsync-exclude' ./ \
           ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:${{ secrets.EC2_TARGET_PATH }}
 
-    # - name: Remove SSH access rule
-    #   if: always()
-    #   run: |
-    #     ./sg/revoke-ssh.sh
-    #   env:
-    #     SECURITY_GROUP_ID: ${{ secrets.EC2_SECURITY_GROUP_ID }}
-    #     RUNNER_IP: ${{ steps.allow_ssh.outputs.runner_ip }}
+    - name: Remove SSH access rule
+      if: always()
+      run: |
+        ./sg/revoke-ssh.sh
+      env:
+        # SECURITY_GROUP_ID: ${{ secrets.EC2_SECURITY_GROUP_ID }}
+        RUNNER_IP: ${{ steps.allow_ssh.outputs.runner_ip }}
