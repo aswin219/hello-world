@@ -31,7 +31,7 @@ jobs:
     - name: Allow SSH from runner IP
       id: allow_ssh
       run: |
-        ./scripts/allow-ssh.sh
+        ./sg/allow-ssh.sh
       env:
         SECURITY_GROUP_ID: ${{ secrets.EC2_SECURITY_GROUP_ID }}
 
@@ -50,7 +50,7 @@ jobs:
     - name: Remove SSH access rule
       if: always()
       run: |
-        ./scripts/revoke-ssh.sh
+        ./sg/revoke-ssh.sh
       env:
         SECURITY_GROUP_ID: ${{ secrets.EC2_SECURITY_GROUP_ID }}
         RUNNER_IP: ${{ steps.allow_ssh.outputs.runner_ip }}
