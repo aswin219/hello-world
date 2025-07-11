@@ -1,0 +1,30 @@
+name: Rsync to EC2
+
+on:
+  push:
+    branches: [test-branch]
+
+jobs:
+  test1:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: check IP
+      run: |
+        chmod +x sg/test.sh
+        ./sg/test/sh
+        
+  test2:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: check IP
+      run: |
+        chmod +x sg/test.sh
+        ./sg/test/sh
