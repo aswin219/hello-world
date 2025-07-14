@@ -17,7 +17,7 @@ echo "runner_ip=$ip" >> "$GITHUB_OUTPUT"
 aws ec2 authorize-security-group-ingress \
   --group-id "$SECURITY_GROUP_ID" \
   --protocol tcp \
-  --port 22 \
+  --port 6895 \
   --cidr "$ip/32" \
   --region "$AWS_REGION"
 
