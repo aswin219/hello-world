@@ -3,4 +3,3 @@ unzip awscliv2.zip
 sudo ./aws/install
 aws --version
 rm -rf aws*
-sudo apt install openssh-client
