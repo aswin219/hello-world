@@ -41,7 +41,7 @@ jobs:
         mkdir -p ~/.ssh
         echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_ed25519
         chmod 600 ~/.ssh/id_ed25519
-        ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+        ssh-keyscan -p 6895 -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
     - name: Rsync files to EC2
       run: |
