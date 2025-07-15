@@ -45,7 +45,7 @@ jobs:
 
     - name: Rsync files to EC2
       run: |
-        rsync -avz -e "ssh -p 6895" --delete --exclude-from='.rsync-exclude' ./ \
+        sudo rsync -avz -e "ssh -p 6895" --delete --exclude-from='.rsync-exclude' ./ \
           ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:${{ secrets.EC2_TARGET_PATH }}
 
     - name: Run post scripts on EC2
